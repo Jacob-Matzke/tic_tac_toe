@@ -11,7 +11,7 @@ checked on its own before the next is written.
 
 ```
 stage 1   generate      all legal board states           -> data/states.jsonl
-stage 2   canonicalize  collapse under the 8 symmetries  -> data/nodes.json
+stage 2   canonicalize  collapse under the 8 symmetries  -> data/nodes.jsonl
 stage 3   link          build directed edges by ply      -> data/graph.json
 stage 4   render        3D animated web app              -> web/
 ```
@@ -46,6 +46,6 @@ Per-stage invariants worth asserting as you go:
 ## Status
 
 - [x] stage 1 generate -> data/states.jsonl (5478 states)
-- [ ] stage 2 canonicalize
+- [x] stage 2 canonicalize -> data/nodes.jsonl (765 nodes)
 - [ ] stage 3 link
 - [ ] stage 4 render

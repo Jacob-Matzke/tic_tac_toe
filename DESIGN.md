@@ -99,6 +99,23 @@ Sanity checks:
 - `canon(canon(s)) == canon(s)`
 - `canon(g(s)) == canon(s)` for all 8 transforms, for every state
 
+### Verified checkpoints
+
+Confirmed 2026-08-17 against `data/states.jsonl`, using rotate-90 and one
+horizontal flip as the two generators:
+
+- group closes at exactly 8 elements
+- index 4 (the centre) is fixed by every element
+- unique classes: 765
+- orbit sizes occur only as 1, 2, 4, 8 (orbit-stabilizer: size divides |G| = 8),
+  distributed `{1: 6, 2: 6, 4: 141, 8: 612}`
+- `6 + 6 + 141 + 612 = 765` and `6*1 + 6*2 + 141*4 + 612*8 = 5478`
+
+Burnside gives 765 by a route that never builds a canonical form, so it cannot
+share a bug with `canon()`. Fixed-point counts per element are
+`[5478, 158, 158, 136, 136, 42, 6, 6]`, and `6120 / 8 = 765`. The 5478 is the
+identity fixing everything.
+
 ### Optional further collapse: color swap
 
 Swapping X and O is another symmetry of the *board*, but not of the *game*, since
@@ -148,8 +165,9 @@ could open in a text editor. Optimize for legibility, not bytes.
 
 - `states.jsonl` — one JSON object per line. Streamable, diffable, greppable,
   and you can `head` it to see whether stage 1 worked.
-- `nodes.json` / `graph.json` — single JSON objects, since the web app loads them
-  whole anyway.
+- `nodes.jsonl` — one node per line, same reasoning as `states.jsonl`.
+- `graph.json` — a single JSON object, since it carries nodes *and* edges and the
+  web app loads it whole anyway.
 
 Suggested node fields: `id` (canonical string), `ply`, `turn`, `terminal`,
 `winner`, `orbit_size` (how many of the 5478 collapse into it). The orbit sizes
