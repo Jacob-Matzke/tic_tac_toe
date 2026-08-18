@@ -34,6 +34,15 @@ Known-correct numbers to validate each stage against. See DESIGN.md.
 | legal reachable states (play stops at a win) | 5478     |
 | unique under rotation + reflection           | 765      |
 
+Per-stage invariants worth asserting as you go:
+
+- nodes per ply: 1, 3, 12, 38, 108, 174, 204, 153, 57, 15
+- orbit sizes sum to 5478
+- for any non-terminal node, out-edge weights sum to its empty-cell count
+- the empty board has 3 children with weights 4, 4, 1 (corner, edge, center)
+- every edge goes ply k -> k+1, so the graph is a DAG
+- if you compute minimax values: the empty board is a DRAW
+
 ## Status
 
 - [ ] stage 1 generate

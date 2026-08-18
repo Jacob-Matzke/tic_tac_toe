@@ -23,7 +23,8 @@ Three rules that apply to every choice below:
 
 ## D1. What counts as a "board state"
 
-STATUS: open
+STATUS: default taken 2026-08-17, not binding - change it if the code disagrees
+Default: search from the empty board, with a 3^9 filter as a cross-check.
 
 Three different populations, and they are not the same size:
 
@@ -54,7 +55,8 @@ is much stronger evidence than one method producing it.
 
 ## D2. State encoding
 
-STATUS: open
+STATUS: default taken 2026-08-17, not binding - change it if the code disagrees
+Default: 9-char string, `.` for empty, row-major, index 0 top-left.
 
 | encoding          | example              | notes                                   |
 |-------------------|----------------------|-----------------------------------------|
@@ -107,7 +109,8 @@ graph much harder to interpret. **Recommendation: don't**, at least not in v1.
 
 ## D4. Edges under symmetry
 
-STATUS: open
+STATUS: default taken 2026-08-17, not binding - change it if the code disagrees
+Default: one weighted edge per (source, target).
 
 This is the part worth thinking about carefully before writing it.
 
@@ -211,7 +214,7 @@ Rendering notes for later:
 
 ## D8. What the animation actually shows
 
-STATUS: open
+STATUS: deliberately deferred - decide once the graph exists and you can see it
 
 "Animated" can mean several things. Pick one as the spine:
 
@@ -231,7 +234,8 @@ by outcome if terminal, by minimax value under perfect play.
 
 ## Open questions to answer first
 
-1. D1 — search or filter? (Recommendation: both, and assert they agree.)
-2. D2 — lock the index convention and the encoding.
-3. D4 — weighted single edges, or parallel edges?
-4. D8 — which animation is the spine, so the data model can support it?
+D1, D2 and D4 have defaults recorded above so nothing blocks stage 1. D8 is
+deferred until there is a graph to look at.
+
+The one to not put off is D2's index convention, since every `id` in every data
+file is written against it.
