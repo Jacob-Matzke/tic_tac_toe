@@ -1,57 +1,44 @@
-class Board:
+# Return the indices of empty cells in the board state
+def get_empty_indices(s):
+        return [i for i, cell in enumerate(s) if cell == '.']
 
-    # Initialize the board with a given state and parent node
-    def __init__(self, parent, state, current_player='O'):
-        self.parent = parent
-        self.state = state
-        self.children = []
-        self.turns_played = state.count('X') + state.count('O')  # Count the number of turns played based on the state
-        self.current_player = current_player  # Set the current player
+def is_tie(s):
+    # Check for a tie (no empty spaces left)
+    if '.' not in s:
+        return True # No empty spaces left, it's a draw
 
-    # Simple getters and setters
-    def add_child(self, child):
-        self.children.append(child)
+    return False
 
-    def get_children(self):
-        return self.children
+def winner(s):
 
-    def get_state(self):
-        return self.state
+    ## Check rows
+    for i in range(3):
+        if s[i*3] == s[i*3 + 1] == s[i*3 + 2] != '.':
+            return s[i*3]  # A player has won
 
-    def get_parent(self):
-        return self.parent
+    ## Check columns
+    for i in range(3):
+        if s[i] == s[i + 3] == s[i + 6] != '.':
+            return s[i]  # A player has won
 
-    def get_turns_played(self):
-        return self.turns_played
+    ## Check diagonal A
+    if s[0] == s[4] == s[8] != '.':
+        return s[0]  # A player has won
 
-    # Check if the board is a terminal state (win/loss/draw)
-    def is_terminal(self):
+    ## Check diagonal B
+    if s[2] == s[4] == s[6] != '.':
+        return s[2]  # A player has won
 
-        # Check for a win condition
-        ## Check rows
-        for i in range(3):
-            if self.state[i*3] == self.state[i*3 + 1] == self.state[i*3 + 2] != '.':
-                return True  # A player has won
+    return None  # Nobody has a line. Whether the game is over is is_terminal's question.
 
-        ## Check columns
-        for i in range(3):
-            if self.state[i] == self.state[i + 3] == self.state[i + 6] != '.':
-                return True  # A player has won
+# Check if the game is over (either a win or a tie)
+def is_terminal(s):
+    return winner(s) is not None or is_tie(s)
 
-        ## Check diagonal A
-        if self.state[0] == self.state[4] == self.state[8] != '.':
-            return True  # A player has won
+# Get the number of turns played based on the current board state
+def get_turns_played(s):
+    return 9 - len(get_empty_indices(s))  # Count the number of turns played based on the state
 
-        ## Check diagonal B
-        if self.state[2] == self.state[4] == self.state[6] != '.':
-            return True  # A player has won
-
-        # Check for a tie (no empty spaces left)
-        if '.' not in self.state:
-            return True  # No empty spaces left, it's a draw
-
-        # Else game is ongoing
-        return False
-
-    def get_empty_indices(self):
-        return [i for i, cell in enumerate(self.state) if cell == '.']
+# Get the current player based on the number of turns played
+def get_current_player(s):
+    return 'X' if get_turns_played(s) % 2 == 0 else 'O'  # Determine the current player based on the number of turns played

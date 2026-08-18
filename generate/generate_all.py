@@ -1,37 +1,104 @@
-from board import Board
+import json
+from pathlib import Path
+
+import board
+
+# Anchored to this file, not the current directory, so output lands in the same
+# place no matter where python is invoked from.
+STATES_PATH = Path(__file__).resolve().parent.parent / "data" / "states.jsonl"
+
+# Known-correct counts for tic-tac-toe. If any of these fail, the generator is wrong.
+EXPECTED_TOTAL = 5478
+EXPECTED_BY_PLY = [1, 9, 72, 252, 756, 1260, 1520, 1140, 390, 78]
+EXPECTED_TERMINAL = 958
+EXPECTED_OUTCOMES = {'X': 626, 'O': 316, None: 16}  # X wins, O wins, draws
+
+
+def check(seen, enqueues):
+    # Every state was created exactly once. This is the only check that can catch a
+    # dedup regression; the total below comes out at 5478 either way.
+    assert enqueues == len(seen), f"dedup leak: {enqueues} enqueues for {len(seen)} states"
+
+    assert len(seen) == EXPECTED_TOTAL, f"expected {EXPECTED_TOTAL} states, got {len(seen)}"
+
+    by_ply = [0] * 10
+    for state in seen:
+        by_ply[board.get_turns_played(state)] += 1
+    assert by_ply == EXPECTED_BY_PLY, f"states per ply: {by_ply}"
+
+    terminal = [state for state in seen if board.is_terminal(state)]
+    assert len(terminal) == EXPECTED_TERMINAL, f"expected {EXPECTED_TERMINAL} terminal, got {len(terminal)}"
+
+    outcomes = {'X': 0, 'O': 0, None: 0}
+    for state in terminal:
+        outcomes[board.winner(state)] += 1
+    assert outcomes == EXPECTED_OUTCOMES, f"outcomes: {outcomes}"
+
+    # X moves first. Neither count above ever notices this, since swapping the two
+    # players leaves every one of them unchanged.
+    assert board.get_current_player('.........') == 'X', "O is moving first"
+
+    for state in seen:
+        x, o = state.count('X'), state.count('O')
+        assert x == o or x == o + 1, f"illegal piece counts: {state}"
+
+    # A won game stopped on the winning move, so the winner played last.
+    for state in terminal:
+        x, o = state.count('X'), state.count('O')
+        won_by = board.winner(state)
+        if won_by == 'X':
+            assert x == o + 1, f"X won but did not move last: {state}"
+        elif won_by == 'O':
+            assert x == o, f"O won but did not move last: {state}"
+
+    print(f"all checks passed: {len(seen)} states, {len(terminal)} terminal")
+
+
+def write_states(seen, path):
+    # Sorted so a regeneration is byte-identical unless behaviour actually changed.
+    # Set iteration order is randomised per process, so unsorted output churns
+    # every line on every run and makes the git diff useless.
+    ordered = sorted(seen, key=lambda state: (board.get_turns_played(state), state))
+
+    with open(path, "w", encoding="utf-8", newline="\n") as f:
+        for state in ordered:
+            record = {
+                "state": state,
+                "ply": board.get_turns_played(state),
+                "terminal": board.is_terminal(state),
+                "winner": board.winner(state),
+            }
+            f.write(json.dumps(record, sort_keys=True) + "\n")
+
+    print(f"wrote {len(ordered)} states to {path}")
+
 
 def main():
-    active_states = [Board(None, '.........')]  # List to hold all active board states
-    terminal_states = []  # List to hold all terminal board states
+    seen = set()
+    queue = set()
 
-    while active_states:
+    root_board = '.........'
 
-        current_state = active_states.pop(0)  # Get the first active state
+    queue.add(root_board)
+    seen.add(root_board)  # 'seen' means enqueued, not dequeued
+    enqueues = 1  # counts states created, to prove the dedup guard is doing the work
 
-        for index in current_state.get_empty_indices():
-            # Create a new state by placing the opponent's mark in the empty index
-            player_mark = 'O' if current_state.current_player == 'X' else 'X'
-            new_state = current_state.get_state()[:index] + player_mark + current_state.get_state()[index + 1:]
-            new_board = Board(current_state, new_state, player_mark)  # Create a new board with the new state
-            current_state.add_child(new_board)  # Add the new board as a child of the current state
+    while queue:
+        current_board = queue.pop()
 
-            if new_board.is_terminal():
-                terminal_states.append(new_board)  # If it's a terminal state, add it to the terminal states list
-            else:
-                active_states.append(new_board)  # If it's not terminal, add it to the active states list
+        if board.is_terminal(current_board):  # Check if the game is over
+            continue
 
-    terminal_by_turns = {i: [] for i in range(10)}  # Dictionary to hold terminal states by number of turns played
-    for state in terminal_states:
-        for i in range(10):
-            if state.get_turns_played() == i:
-                terminal_by_turns[i].append(state)
+        for index in board.get_empty_indices(current_board):
+            player_mark = board.get_current_player(current_board)
+            new_board = current_board[:index] + player_mark + current_board[index + 1:]
+            if new_board not in seen:
+                queue.add(new_board)
+                seen.add(new_board)
+                enqueues += 1
 
-    total_terminal_states = 0
-    for turns, states in terminal_by_turns.items():
-        print(f"Terminal states after {turns} turns: {len(states)}")
-        total_terminal_states += len(states)
-
-    print(f"Total terminal states: {total_terminal_states}")
+    check(seen, enqueues)
+    write_states(seen, STATES_PATH)
 
 if __name__ == "__main__":
     main()

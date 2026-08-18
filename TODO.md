@@ -27,6 +27,8 @@ Correct, but the redundant field survives; it disappears in step 3.
 
 ## 2. Add a winner method
 
+**Done 2026-08-17.** Correct, but duplicates the win scan; see the inversion note in step 3.
+
 **Change.** A method returning `'X'`, `'O'`, or `None`. The win loops already
 find the line; return the mark instead of `True`. Keep `is_terminal` as
 `winner() is not None or '.' not in state`.
@@ -41,6 +43,9 @@ everything downstream.
 ---
 
 ## 3. Replace Board with functions on strings
+
+**Done 2026-08-17.** Remaining: make `winner()` the primitive and derive
+`is_terminal` from it, and hoist the 8 winning index triples to a module tuple.
 
 **Change.** `board.py` becomes a module of pure functions over 9-char strings:
 `ply(s)`, `to_move(s)`, `winner(s)`, `is_terminal(s)`, `empties(s)`,
@@ -65,6 +70,8 @@ determine. Nothing in stage 1 qualifies.
 
 ## 4. Dedup the search
 
+**Done 2026-08-17.** `seen` marks at enqueue time; redundant enqueues went 544468 -> 0.
+
 **Change.** Replace `active_states` and `terminal_states` with a `seen` set of
 state strings, plus a queue. Enqueue a child only if its string is not
 already in `seen`. Insert into `seen` at creation time, not at dequeue time. Skip
@@ -78,6 +85,8 @@ around it.
 ---
 
 ## 5. Assert the counts
+
+**Done 2026-08-17.** Seven checks in `generate_all.py`, all passing.
 
 **Change.** Fail loudly rather than printing. Counts per ply and the total.
 
@@ -101,6 +110,8 @@ both sums rather than trusting the table.
 ---
 
 ## 6. Write states.jsonl
+
+**Done 2026-08-17.** 5478 lines, LF, byte-identical across runs.
 
 **Change.** One JSON object per line:
 

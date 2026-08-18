@@ -45,7 +45,7 @@ Per-stage invariants worth asserting as you go:
 
 ## Status
 
-- [ ] stage 1 generate
+- [x] stage 1 generate -> data/states.jsonl (5478 states)
 - [ ] stage 2 canonicalize
 - [ ] stage 3 link
 - [ ] stage 4 render
