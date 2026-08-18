@@ -20,6 +20,9 @@ root special case and the value cannot drift out of sync with the board.
 **Verify.** The first child of the empty board contains an `X`. Every state
 satisfies `count(X) == count(O)` or `count(X) == count(O) + 1`.
 
+**Done 2026-08-17**, by flipping the constructor default rather than deriving.
+Correct, but the redundant field survives; it disappears in step 3.
+
 ---
 
 ## 2. Add a winner method
@@ -37,23 +40,33 @@ everything downstream.
 
 ---
 
-## 3. Strip the tree links out of Board
+## 3. Replace Board with functions on strings
 
-**Change.** Remove `parent`, `children`, `add_child`, `get_children`,
-`get_parent`. `Board` keeps the state string and what it derives from it.
+**Change.** `board.py` becomes a module of pure functions over 9-char strings:
+`ply(s)`, `to_move(s)`, `winner(s)`, `is_terminal(s)`, `empties(s)`,
+`apply_move(s, i, mark)`. The class, `parent`, `children`, `add_child`, and
+`current_player` all go. A module-level tuple of the 8 winning index triples
+collapses the four near-identical win loops into one.
 
-**Why.** A single `parent` slot cannot represent a position with several parents,
-which is the whole point of a state graph. Edges get rebuilt in stage 3 between
-canonical nodes, and raw-state edges are discarded at stage 2 regardless.
+**Why.** Once the tree links are gone, every remaining attribute is derived from
+the state string, so the object encapsulates nothing. Stage 2's symmetry ops are
+natively string-to-string and compose directly as functions:
+`canon(apply_move(s, i, 'X'))`. This module becomes the shared vocabulary for all
+three Python stages.
 
-**Verify.** Nothing references the removed methods.
+A per-node record does come back at stage 3, holding `orbit_size`, layout
+coordinates and minimax `value` - things that cannot be recomputed from the state
+string. A class earns its place when it holds something the key does not
+determine. Nothing in stage 1 qualifies.
+
+**Verify.** `board.py` has no `class`. Counts still come out the same.
 
 ---
 
 ## 4. Dedup the search
 
-**Change.** Replace `active_states` and `terminal_states` with a `seen` dict from
-state string to Board, plus a queue. Enqueue a child only if its string is not
+**Change.** Replace `active_states` and `terminal_states` with a `seen` set of
+state strings, plus a queue. Enqueue a child only if its string is not
 already in `seen`. Insert into `seen` at creation time, not at dequeue time. Skip
 expansion of terminal states.
 
