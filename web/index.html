@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Tic-Tac-Toe State Graph</title>
+<style>
+  :root {
+    --bg: #080b11;
+    --panel: rgba(14, 19, 28, 0.82);
+    --line: rgba(255, 255, 255, 0.10);
+    --text: #dfe6f0;
+    --dim: #7f8b9e;
+    --x: #ff7a5c;
+    --o: #4aa8ff;
+    --draw: #94a3b5;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); }
+  body {
+    color: var(--text);
+    font: 13px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  canvas { display: block; }
+
+  .panel {
+    position: fixed;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 14px 16px;
+    backdrop-filter: blur(12px);
+  }
+
+  #hud { top: 16px; left: 16px; max-width: 260px; }
+  #hud h1 { margin: 0 0 2px; font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
+  #hud .sub { color: var(--dim); font-size: 12px; margin-bottom: 12px; }
+  #hud .stat { display: flex; justify-content: space-between; gap: 12px; font-variant-numeric: tabular-nums; }
+  #hud .stat span:last-child { color: var(--dim); }
+
+  .controls { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); display: grid; gap: 8px; }
+  button {
+    font: inherit; color: var(--text); cursor: pointer;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--line); border-radius: 7px;
+    padding: 6px 10px; text-align: left;
+    transition: background 120ms ease;
+  }
+  button:hover { background: rgba(255,255,255,0.11); }
+  button .key { color: var(--dim); float: right; font-size: 11px; }
+  .vrow { display: flex; gap: 6px; }
+  .vrow button { flex: 1; text-align: center; }
+  .vrow button .key { float: none; margin-left: 6px; }
+
+  #legend { bottom: 16px; left: 16px; }
+  #legend .row { display: flex; align-items: center; gap: 9px; margin-top: 6px; }
+  #legend .row:first-of-type { margin-top: 0; }
+  #legend .dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+  #legend .cap { color: var(--dim); font-size: 11px; margin-bottom: 9px; letter-spacing: 0.04em; text-transform: uppercase; }
+
+  #tip { top: 16px; right: 16px; width: 190px; display: none; }
+  #tip .grid {
+    display: grid; grid-template-columns: repeat(3, 34px); gap: 3px;
+    margin: 0 auto 12px;
+  }
+  #tip .cell {
+    width: 34px; height: 34px; display: grid; place-items: center;
+    background: rgba(255,255,255,0.05); border-radius: 5px;
+    font-size: 17px; font-weight: 600;
+  }
+  #tip .cell.x { color: var(--x); }
+  #tip .cell.o { color: var(--o); }
+  #tip .meta { display: flex; justify-content: space-between; gap: 10px; padding: 3px 0; }
+  #tip .meta span:first-child { color: var(--dim); }
+  #tip .meta span:last-child { font-variant-numeric: tabular-nums; }
+
+  #ply {
+    position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
+    display: flex; gap: 4px; align-items: center;
+  }
+  #ply .tick {
+    width: 26px; height: 5px; border-radius: 3px;
+    background: rgba(255,255,255,0.13);
+    transition: background 200ms ease;
+  }
+  #ply .tick.on { background: rgba(255,255,255,0.62); }
+
+  /* orbit panel: the raw boards behind one canonical node */
+  #orbit { bottom: 16px; right: 16px; max-width: 700px; display: none; }
+  .ob-head { display: flex; justify-content: space-between; align-items: center; gap: 14px; margin-bottom: 10px; }
+  #ob-title { font-weight: 600; }
+  .ob-actions { display: flex; gap: 6px; }
+  .ob-actions button { padding: 3px 9px; }
+  #ob-row { display: flex; align-items: flex-start; }
+  .ob-wrap {
+    width: 70px; margin-right: 10px; overflow: hidden; perspective: 340px; flex: none;
+    transition: width 450ms ease, margin 450ms ease, opacity 450ms ease;
+  }
+  .ob-wrap.gone { width: 0; margin-right: 0; opacity: 0; }
+  .ob-board {
+    display: grid; grid-template-columns: repeat(3, 20px); gap: 2px; width: 64px;
+    transform-style: preserve-3d;
+    transition: transform 700ms cubic-bezier(0.4, 0.1, 0.2, 1);
+  }
+  .ob-cell {
+    width: 20px; height: 20px; display: grid; place-items: center;
+    font-size: 12px; font-weight: 700;
+    background: rgba(255,255,255,0.06); border-radius: 4px;
+  }
+  .ob-cell.x { color: var(--x); }
+  .ob-cell.o { color: var(--o); }
+  .ob-wrap.canon .ob-cell { background: rgba(255,255,255,0.15); }
+  .ob-lab { color: var(--dim); font-size: 10px; text-align: center; margin-top: 5px; height: 14px; white-space: nowrap; }
+  .ob-note { color: var(--dim); font-size: 11px; margin-top: 8px; max-width: 640px; }
+
+  /* live game panel */
+  #game { left: 16px; bottom: 152px; }
+  .ggrid { display: grid; grid-template-columns: repeat(3, 40px); gap: 4px; }
+  .gcell {
+    width: 40px; height: 40px; padding: 0; text-align: center;
+    font-size: 18px; font-weight: 700;
+  }
+  .gcell.x { color: var(--x); }
+  .gcell.o { color: var(--o); }
+  .gcell:disabled { cursor: default; }
+</style>
+</head>
+<body>
+  <div id="hud" class="panel">
+    <h1>Tic-Tac-Toe State Graph</h1>
+    <div class="sub">765 positions, distinct up to rotation and reflection.<br>Hover a node for details; click one to watch its symmetric copies collapse.</div>
+    <div class="stat"><span>nodes</span><span id="s-nodes">–</span></div>
+    <div class="stat"><span>edges</span><span id="s-edges">–</span></div>
+    <div class="stat"><span>collapsed from</span><span id="s-states">–</span></div>
+    <div class="controls">
+      <button id="btn-grow">Replay growth<span class="key">R</span></button>
+      <button id="btn-color">Color: outcome<span class="key">C</span></button>
+      <button id="btn-spin">Auto-rotate: on<span class="key">Space</span></button>
+      <button id="btn-graph">Graph: collapsed<span class="key">G</span></button>
+      <div class="vrow">
+        <button id="v-orbit">Orbit<span class="key">1</span></button>
+        <button id="v-side">Side<span class="key">2</span></button>
+        <button id="v-top">Top<span class="key">3</span></button>
+      </div>
+    </div>
+  </div>
+
+  <div id="legend" class="panel">
+    <div class="cap" id="legend-cap">Result with perfect play</div>
+    <div id="legend-rows"></div>
+  </div>
+
+  <div id="tip" class="panel">
+    <div class="grid" id="tip-grid"></div>
+    <div class="meta"><span>ply</span><span id="tip-ply"></span></div>
+    <div class="meta"><span>to move</span><span id="tip-move"></span></div>
+    <div class="meta"><span>outcome</span><span id="tip-value"></span></div>
+    <div class="meta"><span>symmetric copies</span><span id="tip-orbit"></span></div>
+  </div>
+
+  <div id="orbit" class="panel">
+    <div class="ob-head">
+      <span id="ob-title"></span>
+      <span class="ob-actions"><button id="ob-replay">Replay</button><button id="ob-close">&#10005;</button></span>
+    </div>
+    <div id="ob-row"></div>
+    <div id="ob-note" class="ob-note"></div>
+  </div>
+
+  <div id="game" class="panel">
+    <div class="ob-head">
+      <span style="font-weight:600">Play a game</span>
+      <span class="ob-actions"><button id="g-reset">Reset</button></span>
+    </div>
+    <div id="g-grid" class="ggrid"></div>
+    <div id="g-status" class="ob-note">X to move</div>
+    <div class="controls">
+      <button id="btn-ai">Computer: off<span class="key">A</span></button>
+      <button id="btn-pv">Autoplay perfect game<span class="key">P</span></button>
+    </div>
+  </div>
+
+  <div id="ply"></div>
+
+  <script type="module" src="/main.js"></script>
+</body>
+</html>

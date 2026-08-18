@@ -47,5 +47,5 @@ Per-stage invariants worth asserting as you go:
 
 - [x] stage 1 generate -> data/states.jsonl (5478 states)
 - [x] stage 2 canonicalize -> data/nodes.jsonl (765 nodes)
-- [ ] stage 3 link
-- [ ] stage 4 render
+- [x] stage 3 link -> data/graph.json (2096 edges, minimax values, layout)
+- [x] stage 4 render -> web/ (three.js + Vite)
